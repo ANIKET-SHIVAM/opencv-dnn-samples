@@ -1,7 +1,7 @@
 #include <fstream>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv/cv.hpp>
+#include <opencv2/opencv.hpp>
 #include <opencv2/imgcodecs.hpp> 
 #include "opencv2/core/utility.hpp"
 #include "opencv2/core/ocl.hpp"
@@ -128,8 +128,8 @@ std::vector<Point2f> testKeyPointsModel(const std::string& weights, const std::s
 std::vector<Point2f> dnn_keypoint_pose()
 {
     Mat inp = cv::imread(_tf("pose_test2.jpeg"));
-    std::string weights = _tf("onnx/models/lightweight_pose_estimation.onnx", false);
-    Mat exp = blobFromNPY(_tf("keypoints_exp.npy"));
+    std::string weights = _tf("onnx/models/lightweight_pose_estimation_201912.onnx", false);
+    Mat exp; //blobFromNPY(_tf("keypoints_exp.npy"));
 
 
     Size size{507, 626};
