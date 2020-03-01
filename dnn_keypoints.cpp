@@ -9,6 +9,12 @@
 #include <opencv2/dnn/shape_utils.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <omp.h>
+
+#define ITERATIONS 10
+#define THREADS 4 
+#define FACIAL_IMG "michelle_detected.png"
+#define POSE_IMG "pose_test2.jpeg"
 
 using namespace cv;
 
@@ -127,7 +133,7 @@ std::vector<Point2f> testKeyPointsModel(const std::string& weights, const std::s
 
 std::vector<Point2f> dnn_keypoint_pose()
 {
-    Mat inp = cv::imread(_tf("pose_test2.jpeg"));
+    Mat inp = cv::imread(_tf(POSE_IMG));
     std::string weights = _tf("onnx/models/lightweight_pose_estimation_201912.onnx", false);
     Mat exp; //blobFromNPY(_tf("keypoints_exp.npy"));
 
@@ -148,7 +154,7 @@ std::vector<Point2f> dnn_keypoint_pose()
 
 std::vector<Point2f> dnn_keypoint_facial()
 {
-    Mat inp = cv::imread(_tf("michelle_detected.png"), 0); 
+    Mat inp = cv::imread(_tf(FACIAL_IMG), 0); 
     std::string weights = _tf("onnx/models/facial_keypoints.onnx", false);
     Mat exp = blobFromNPY(_tf("facial_keypoints_exp.npy"));
 
@@ -168,38 +174,36 @@ std::vector<Point2f> dnn_keypoint_facial()
 
 int main () {
   std::vector<Point2f> keypointMatPose, keypointMatFace;
-  for (int i = 0; i < 1; i++) {
-    keypointMatPose = dnn_keypoint_pose();
+  
+  setNumThreads(THREADS);
+
+  double start, end;
+  start = omp_get_wtime();   
+  for (int i = 0; i < ITERATIONS; i++) {
     keypointMatFace = dnn_keypoint_facial();
   }
-/*    Mat image;
-    image = imread(_tf("pose_test2.jpeg"), IMREAD_COLOR);   // Read the file
-    if(! image.data )                              // Check for invalid input
-    {
-        std::cout <<  "Could not open or find the image" << std::endl ;
-        return -1;
-    }
-    namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
-    imshow( "Display window", image );                   // Show our image inside it.
-    Mat image2;
-    image2 = imread(_tf("michelle_detected.png",0), IMREAD_COLOR);   // Read the file
-    if(! image2.data )                              // Check for invalid input
-    {
-        std::cout <<  "Could not open or find the image" << std::endl ;
-        return -1;
-    }
-    namedWindow( "Display window 2", WINDOW_AUTOSIZE );// Create a window for display.
-    imshow( "Display window 2", image2 );                   // Show our image inside it.
-*/
+  end = omp_get_wtime();
+  std::cout << "Facial DNN runtime (per iteration): " << (end-start)/ITERATIONS << std::endl;
+  std::cout << "Input: " << FACIAL_IMG << ", Threads: " << THREADS << ", Iterations: " << ITERATIONS << std::endl;
+
+  start = omp_get_wtime();   
+  for (int i = 0; i < ITERATIONS/10; i++) {
+    keypointMatPose = dnn_keypoint_pose();
+  }
+  end = omp_get_wtime();
+  std::cout << "Pose DNN runtime (per iteration): " << (end-start)/(ITERATIONS/10) << std::endl;
+  std::cout << "Input: " << POSE_IMG << ", Threads: " << THREADS << ", Iterations: " << ITERATIONS/10 << std::endl;
+
+/* 
   std::cout << "Pose keypoints = " << std::endl << " "  << keypointMatPose << std::endl << std::endl;
-  std::cout << "Facial keypoints = " << std::endl << " "  << keypointMatFace << std::endl << std::endl;
+  
   Mat outPose, outFace;
   std::vector<cv::KeyPoint> keypointsPose;
 
   for( size_t i = 0; i < keypointMatPose.size(); i++ ) 
     keypointsPose.push_back(KeyPoint(keypointMatPose[i], 1.f));
   
-  Mat faceimage = imread(_tf("michelle_detected.png",0), 0);
+  Mat faceimage = imread(_tf(FACIAL_IMG,0), 0);
   std::cout << "Image size: " <<  faceimage.cols << "," << faceimage.rows << std::endl;
 
   for( size_t i = 0; i < keypointMatFace.size(); i++ ) {
@@ -212,13 +216,13 @@ int main () {
   for( size_t i = 0; i < keypointMatFace.size(); i++ ) 
     keypointsFace.push_back(KeyPoint(keypointMatFace[i], 1.f));
 
-  drawKeypoints(imread(_tf("pose_test2.jpeg"), 0),keypointsPose,outPose); 
+  drawKeypoints(imread(_tf(POSE_IMG), 0),keypointsPose,outPose); 
   namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
   imshow( "Display window", outPose );                   // Show our image inside it.
   drawKeypoints(faceimage,keypointsFace,outFace);
   namedWindow( "Display window 2", WINDOW_AUTOSIZE );// Create a window for display.
   imshow( "Display window 2", outFace );                   // Show our image inside it.
-  
-  waitKey(0);                             
+  waitKey(0);
+*/
   return 0;
 }
