@@ -12,7 +12,7 @@
 #include <omp.h>
 
 #define ITERATIONS 10
-#define THREADS 4 
+#define THREADS 1 
 #define FACIAL_IMG "michelle_detected.png"
 #define POSE_IMG "pose_test2.jpeg"
 
@@ -125,7 +125,14 @@ std::vector<Point2f> testKeyPointsModel(const std::string& weights, const std::s
     model.setPreferableBackend(backend);
     model.setPreferableTarget(target);
 
-    points = model.estimate(frame, 0.5);
+    double start, end;
+    start = omp_get_wtime();   
+    for (int i = 0; i < ITERATIONS; i++) {
+      points = model.estimate(frame, 0.5);
+    }
+    end = omp_get_wtime();
+    std::cout << "DNN runtime (per iteration): " << (end-start)/ITERATIONS << std::endl;
+    std::cout << "Threads: " << getNumThreads() << ", Iterations: " << ITERATIONS << std::endl;
 
     return points;
 }
@@ -177,22 +184,11 @@ int main () {
   
   setNumThreads(THREADS);
 
-  double start, end;
-  start = omp_get_wtime();   
-  for (int i = 0; i < ITERATIONS; i++) {
-    keypointMatFace = dnn_keypoint_facial();
-  }
-  end = omp_get_wtime();
-  std::cout << "Facial DNN runtime (per iteration): " << (end-start)/ITERATIONS << std::endl;
-  std::cout << "Input: " << FACIAL_IMG << ", Threads: " << THREADS << ", Iterations: " << ITERATIONS << std::endl;
+  std::cout << "Face Detection: " << "Input -> " << FACIAL_IMG << std::endl;
+  keypointMatFace = dnn_keypoint_facial();
 
-  start = omp_get_wtime();   
-  for (int i = 0; i < ITERATIONS/10; i++) {
-    keypointMatPose = dnn_keypoint_pose();
-  }
-  end = omp_get_wtime();
-  std::cout << "Pose DNN runtime (per iteration): " << (end-start)/(ITERATIONS/10) << std::endl;
-  std::cout << "Input: " << POSE_IMG << ", Threads: " << THREADS << ", Iterations: " << ITERATIONS/10 << std::endl;
+  std::cout << "Pose Detection: " << "Input -> " << POSE_IMG << std::endl;
+  keypointMatPose = dnn_keypoint_pose();
 
 /* 
   std::cout << "Pose keypoints = " << std::endl << " "  << keypointMatPose << std::endl << std::endl;
